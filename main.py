@@ -50,13 +50,6 @@ def simulator(queue: Queue, board_size: tuple[int, int], steps_per_gen: int, pop
 
 
 def gui(queue: Queue):
-    size = (30, 30)
-    loop_length = 15
-
-    # board = Board(size, loop_length, 50)
-
-    # q = Queue()
-
     root = Tk()
     root.wm_title("Tkinter window")
 

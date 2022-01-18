@@ -13,6 +13,14 @@ random = random.Random()
 random.seed(1)
 
 
+def will_get_out_of_bound(new_pos: tuple[int, int], screensize: tuple[int, int]) -> bool:
+    if new_pos[0] < 0 or new_pos[0] >= screensize[0]:
+        return True
+    elif new_pos[1] < 0 or new_pos[1] >= screensize[1]:
+        return True
+    return False
+
+
 class Creature:
     brain: Brain
     x: int
@@ -135,16 +143,33 @@ class Creature:
         y_distance = self.y - (board.board_height / 2)
         return round(math.sqrt((x_distance ** 2) + (y_distance ** 2)))
 
+    def get_new_pos(self, direction: int):
+        new_x = self.x
+        new_y = self.y
+        if direction == Rotation.Up.value:
+            new_y -= 1
+        elif direction == Rotation.Down.value:
+            new_y += 1
+        elif direction == Rotation.Left.value:
+            new_x -= 1
+        elif direction == Rotation.Right.value:
+            new_x += 1
+        return new_x, new_y
+
     @staticmethod
-    def tick(args: tuple["Creature", "Board"]) -> tuple["Creature", Union[int, None]]:
+    def tick(args: tuple["Creature", "Board"]) -> tuple["Creature", Union[None, tuple[int, int]]]:
         creature = args[0]
         board = args[1]
         creature.queued_move = None
         creature.brain.think(board)
         if not creature.queued_move:
             return creature, None
-
-        return creature, creature.queued_move[0]
+        new_pos = creature.get_new_pos(creature.queued_move[0])
+        if will_get_out_of_bound(new_pos, board.get_board_size()):
+            return creature, None
+        elif new_pos == creature.get_pos():
+            return creature, None
+        return creature, new_pos
 
     def reproduce(self):
         def cloned_connections(connections: list[Connection]):
@@ -176,10 +201,14 @@ class Creature:
                                       self.color[2] / float(256))
         h += ((random.random() - 0.5) * 0.05)
         r, g, b = colorsys.hsv_to_rgb(h, s, v)
+
+        def clamp(color: int):
+            return max(0, min(255, color))
+
         self.color = (
-            round(r * 255),
-            round(g * 255),
-            round(b * 255),
+            clamp(round(r * 255)),
+            clamp(round(g * 255)),
+            clamp(round(b * 255)),
         )
         # self.color = (
         #     clamp(color[0] + random.randrange(-strength, strength), 0, 255),

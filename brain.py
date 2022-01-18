@@ -31,8 +31,8 @@ Pop = population density near the creature
 Cfd = distance to the nearest creature in front of the creature 
 Bfd = distance to the border in front of the creature 
 
-LMy = last movement y 
-LMx = last movement x
+LMy = last movement y (+/-)
+LMx = last movement x (+/-)
 BDx = distance to closest border on x axis
 BDy = distance to closest border on y axis
 Lx = location x

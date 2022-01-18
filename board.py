@@ -1,7 +1,8 @@
 import random
 import time
 
-from brain import Rotation
+import numpy as np
+
 from creature import Creature
 
 random = random.Random()
@@ -43,6 +44,15 @@ class Board:
                     available.append((x, y))
         return available
 
+    def get_free_spot_matrix(self) -> np.ndarray:
+        matrix = np.empty((self.board_width, self.board_height), np.bool)
+        matrix.fill(True)
+        for creature in self.creatures:
+            pos = creature.get_pos()
+            # TODO: off by one error waiting to happen
+            matrix.itemset((pos[0], pos[1]), False)
+        return matrix
+
     def init_creatures(self, mut_fac: float):
         self.creatures = []
         free_spots = self.get_all_free_spots()
@@ -71,40 +81,30 @@ class Board:
             return entity, self
 
         args: list[tuple[Creature, "Board"]] = list(map(create_arg, self.creatures))
-        starting_pool = time.perf_counter()
+
+        before_pool = time.perf_counter()
         result = map(Creature.tick, args)  # pool.map(Creature.tick, args)
         done_pool = time.perf_counter()
 
-        done_not_pool = time.perf_counter()
-
-        free_tiles = self.get_all_free_spots()
+        before_free_tiles = time.perf_counter()
+        # free_tiles = self.get_all_free_spots()
+        free_tiles_matrix = self.get_free_spot_matrix()
         self.creatures = []
-        for creature, direction in result:
+        starting_for_loop = time.perf_counter()
+        for creature, new_pos in result:
             self.creatures.append(creature)
-            if direction is None:
+            if new_pos is None:
                 continue
-            old_tile = creature.get_pos()
-            new_y = old_tile[1]
-            new_x = old_tile[0]
-            if direction == Rotation.Up.value:
-                new_y -= 1
-            elif direction == Rotation.Down.value:
-                new_y += 1
-            elif direction == Rotation.Left.value:
-                new_x -= 1
-            elif direction == Rotation.Right.value:
-                new_x += 1
-            new_tile: tuple[int, int] = (new_x, new_y)
+            old_pos = creature.get_pos()
+            if free_tiles_matrix.item((new_pos[0], new_pos[1])):
+                creature.set_pos(new_pos)
+                free_tiles_matrix.itemset((old_pos[0], old_pos[1]), True)
+                free_tiles_matrix.itemset((new_pos[0], new_pos[1]), False)
 
-            if new_tile != old_tile and new_tile in free_tiles:
-                creature.set_pos(new_tile)
-                free_tiles.remove(new_tile)
-                free_tiles.append(old_tile)
         moved_creatures = time.perf_counter()
         print(f"Tick duration : {moved_creatures - start_tick :0.4f}s")
-        print(f"Before pool   : {starting_pool - start_tick :0.4f}s")
-        print(f"Pool          : {done_pool - starting_pool :0.4f}s")
-        print(f"NotPool       : {done_not_pool - done_pool :0.4f}s")
+        print(f"Pool          : {done_pool - beIfore_pool :0.4f}s")
+        print(f"Free tiles    : {starting_for_loop - before_free_tiles  :0.4f}s")
         print(f"Moving        : {moved_creatures - done_pool :0.4f}s")
         print("")
 
